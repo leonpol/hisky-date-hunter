@@ -298,6 +298,14 @@ KNOWN_BOTTLE_QUERIES: tuple[dict[str, str], ...] = (
         "event_type": "Bottled",
         "caveat": "Signatory Vintage Cask #2911 bottled 26.08.2014.",
     },
+    {
+        "query": "Macallan Speymalt 1970",
+        "must_contain": "macallan",
+        "must_contain_2": "1970",
+        "target_date": "2011-12-20",
+        "event_type": "Bottled (Verify Batch)",
+        "caveat": "Confirm Gordon & MacPhail Speymalt 1970–2011 batch bottled 20 December 2011 (EAN 5020613029538).",
+    },
 )
 
 # Preferred & Israel-shipping retailer shipping reference for reports.

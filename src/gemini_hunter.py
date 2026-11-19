@@ -74,6 +74,20 @@ def build_system_prompt(target_dates: Sequence[str] = DEFAULT_TARGET_DATES) -> s
                 "  * Kalkwijck Eastmoor Batch III (distilled 8 November 2014)",
             ]
         )
+    if "2014-08-26" in target_dates:
+        known_notes.extend(
+            [
+                "  * Ben Nevis 1991 23yo Signatory Vintage Un-Chillfiltered Cask #2911 (bottled 26.08.2014 / 26/08/2014)",
+                "  * Caol Ila 2014 11yo Finn Thomson Single Cask Refill Hogshead (verify back-label distilled 26 August 2014)",
+            ]
+        )
+    if "2011-12-20" in target_dates:
+        known_notes.extend(
+            [
+                "  * The Macallan Speymalt 1970–2011 41yo Gordon & MacPhail (43%, EAN 5020613029538, bottled 20 December 2011)",
+                "  * CRITICAL RULE: Do NOT confuse Springbank/Hazelburn/Kilkerran codes like '20/12 11' or '27.01.20 11' (year 2020) with 20 December 2011!",
+            ]
+        )
 
     known_section = (
         "- Known exact bottles for these dates:\n" + "\n".join(known_notes) + "\n"
