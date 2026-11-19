@@ -319,12 +319,16 @@ def dispatch_notifications(
         logger.warning(
             "Partial Telegram configuration detected: set both TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID."
         )
+    else:
+        logger.warning(
+            "TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are not set in Repository Secrets — skipping Telegram send."
+        )
 
-    # 2. GitHub Issue notification (enabled unless ENABLE_GITHUB_ISSUE=false)
-    enable_gh_issue = os.environ.get("ENABLE_GITHUB_ISSUE", "true").strip().lower() not in (
-        "0",
-        "false",
-        "no",
+    # 2. Optional GitHub Issue notification (disabled by default to avoid GitHub email spam; opt in with ENABLE_GITHUB_ISSUE=true)
+    enable_gh_issue = os.environ.get("ENABLE_GITHUB_ISSUE", "false").strip().lower() in (
+        "1",
+        "true",
+        "yes",
     )
     gh_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
     gh_token = os.environ.get("GITHUB_TOKEN", "").strip()

@@ -155,6 +155,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     write_github_step_summary(to_notify, all_active, target_dates)
 
+    tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+    tg_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+    delivered = True
+
     if to_notify:
         logger.info("Dispatching alert for %d match(es)...", len(to_notify))
         channels = dispatch_notifications(
@@ -164,11 +168,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             dry_run=args.dry_run,
         )
         logger.info("Notification channels triggered: %s", channels)
+        if not channels and not args.dry_run:
+            delivered = False
+            logger.warning(
+                "Matches were found, but NO notification channels are configured! "
+                "Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in GitHub Settings -> Secrets and variables -> Actions. "
+                "Skipping state update so these matches will still be sent once Telegram is configured."
+            )
     else:
         logger.info("No new matching bottles found this month — staying quiet.")
         if test_ping and not args.dry_run:
-            tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
-            tg_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
             if tg_token and tg_chat_id:
                 send_telegram_test_ping(
                     tg_token,
@@ -178,11 +187,24 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 logger.info("Sent Telegram test ping to chat %s", tg_chat_id)
             else:
-                logger.warning(
-                    "SEND_TEST_PING requested, but TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is unset."
+                logger.error(
+                    "SEND_TEST_PING was requested, but TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is not set "
+                    "in GitHub Settings -> Secrets and variables -> Actions!"
                 )
+                print(
+                    "::error::Telegram secrets missing! Go to Settings -> Secrets and variables -> Actions "
+                    "and add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID."
+                )
+                return 1
 
-    if not args.dry_run and not one_off_override:
+    if test_ping and not args.dry_run and not (tg_token and tg_chat_id):
+        print(
+            "::error::Telegram secrets missing! Go to Settings -> Secrets and variables -> Actions "
+            "and add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID."
+        )
+        return 1
+
+    if not args.dry_run and not one_off_override and delivered:
         store.mark_seen(all_active)
         store.save()
         logger.info("Updated state file at %s", args.state_file)

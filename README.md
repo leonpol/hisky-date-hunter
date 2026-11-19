@@ -39,7 +39,7 @@ In this repository, go to **Settings → Secrets and variables → Actions → N
 | `TELEGRAM_CHAT_ID` | **Yes (for Telegram)** | Your numeric Telegram Chat ID |
 | `GEMINI_API_KEY` | **Recommended** | Free API key from [Google AI Studio](https://aistudio.google.com/apikey) (powers Layer 2 live web discovery; Layer 1 direct checks still run even without it) |
 
-*(Optional)* By default, the agent also opens a GitHub Issue on matches as a backup archive. If you want **Telegram-only** notifications with no GitHub Issues, go to **Settings → Secrets and variables → Actions → Variables → New repository variable** and set `ENABLE_GITHUB_ISSUE` = `false`.
+*(Optional)* Notifications go **only to Telegram** by default (no GitHub Issues / email noise). If you also want backup GitHub Issues opened on matches, go to **Settings → Secrets and variables → Actions → Variables → New repository variable** and set `ENABLE_GITHUB_ISSUE` = `true`.
 
 ### Step 3: Send Yourself a Test Ping Right Now
 1. Go to the **Actions** tab → **Monthly Whisky Hunter**.

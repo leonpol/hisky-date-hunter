@@ -197,6 +197,52 @@ def _build_german_store_queries(target_dates: Sequence[str]) -> list[str]:
     return queries
 
 
+_HEAD_SCRIPT_STYLE_RE = __import__("re").compile(
+    r"<(?:head|script|style|noscript)\b[^>]*>.*?</(?:head|script|style|noscript)>|<!--.*?-->",
+    __import__("re").I | __import__("re").S,
+)
+_HTML_TAG_RE = __import__("re").compile(r"<[^>]+>")
+
+
+def _strip_search_page_echoes(raw_html: str, query: str) -> str:
+    """
+    Strip HTML tags/attributes (such as `?search=07.06.2012` in pagination links),
+    `<head>`/`<script>` blocks, quoted query echoes (`„07.06.2012“`, `"07.06.2012"`),
+    and German/English search-result headings (`Suchergebnisse für 07.06.2012`) so only
+    genuine product card descriptions can match.
+    """
+    import html as html_mod
+    import re
+
+    without_blocks = _HEAD_SCRIPT_STYLE_RE.sub(" ", raw_html)
+    visible_text = html_mod.unescape(_HTML_TAG_RE.sub(" ", without_blocks))
+    esc_q = re.escape(query)
+
+    # Remove URL query-parameter echoes in plain text
+    cleaned = re.sub(rf"(?:search|keywords)\s*=\s*{esc_q}", " ", visible_text, flags=re.I)
+    # Remove query wrapped in ASCII, German („...“), French («...»), or curly quotes
+    cleaned = re.sub(
+        rf'[„“”"\'`«»‹›]\s*{esc_q}\s*[„“”"\'`«»‹›]',
+        " ",
+        cleaned,
+    )
+    # Remove search-banner / empty-result phrases echoing the query
+    cleaned = re.sub(
+        rf"\b(?:suchergebnis\w*|suchbegriff\w*|suche|ergebnis\w*|treffer\w*|search(?:\s+results?)?|results?|keywords?)\b"
+        rf"[^.\n]{{0,60}}?{esc_q}",
+        " ",
+        cleaned,
+        flags=re.I,
+    )
+    cleaned = re.sub(
+        rf"{esc_q}[^.\n]{{0,40}}?\b(?:suchergebnis\w*|ergebnis\w*|treffer\w*)\b",
+        " ",
+        cleaned,
+        flags=re.I,
+    )
+    return cleaned
+
+
 def check_whizita_and_home_of_malts(
     fetch: Fetcher = default_http_fetch,
     target_dates: Sequence[str] = DEFAULT_TARGET_DATES,
@@ -222,21 +268,20 @@ def check_whizita_and_home_of_malts(
             status, html = fetch(url)
             if status != 200 or not html:
                 continue
-            sanitized = (
-                html.replace(f'value="{q}"', "")
-                .replace(f"value='{q}'", "")
-                .replace(f"«{q}»", "")
-                .replace(f'"{q}"', "")
-                .replace(f"'{q}'", "")
-            )
+            sanitized = _strip_search_page_echoes(html, q)
             match = detect_target_date(sanitized, url=url, target_dates=target_dates)
             if match:
                 target_date, event_type, evidence = match
                 in_stock, price_str, title = parse_stock_and_price_from_html(html)
-                if in_stock is not False:
+                if in_stock is True:
+                    clean_title = title
+                    if not clean_title or clean_title.lower().startswith(
+                        ("suchergebnis", "suche", "search")
+                    ):
+                        clean_title = f"{retailer_name} search hit for {q}"
                     findings.append(
                         MatchFinding(
-                            title=title or f"{retailer_name} search hit for {q}",
+                            title=clean_title,
                             url=url,
                             target_date=target_date,
                             event_type=event_type,

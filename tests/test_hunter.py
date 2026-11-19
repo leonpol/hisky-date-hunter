@@ -141,6 +141,58 @@ class TestStockAndDirectCheckers(unittest.TestCase):
         self.assertEqual(len(search_hits), 1)
         self.assertEqual(search_hits[0].url, "https://hedonism.co.uk/products/smws-93-184")
 
+    def test_home_of_malts_search_echo_false_positive_rejected(self) -> None:
+        from src.direct_checkers import check_whizita_and_home_of_malts
+
+        # Reproduces the exact Shopware search-page false positive:
+        # pagination/canonical links with ?search=07.06.2012, German quotes „07.06.2012“,
+        # heading "Suchergebnisse für 07.06.2012", and fuzzy unrelated 2012 bottles in stock.
+        shopware_echo_html_template = """
+        <html>
+          <head>
+            <title>Suchergebnis | Home of Malts</title>
+            <link rel="canonical" href="https://www.homeofmalts.com/search?search={q}">
+            <script>window.searchQuery = "{q}";</script>
+          </head>
+          <body>
+            <h1>Suchergebnisse für &bdquo;{q}&ldquo; (24 Treffer)</h1>
+            <p>Ergebnisse zu {q}</p>
+            <a href="https://www.homeofmalts.com/search?search={q}&p=2">Seite 2</a>
+            <div class="product-box">
+              <span class="product-name">Glenfarclas 2012 Vintage</span>
+              <span class="product-price">78,56 €</span>
+              <button>In den Warenkorb</button>
+            </div>
+          </body>
+        </html>
+        """
+
+        def mock_echo_only(url: str) -> tuple[int, str]:
+            for q in ("07.06.2012", "08.11.2014", "93.184"):
+                if q in url:
+                    return 200, shopware_echo_html_template.format(q=q)
+            return 200, "<html><body></body></html>"
+
+        self.assertEqual(check_whizita_and_home_of_malts(fetch=mock_echo_only), [])
+
+        # Verify a genuine product card mentioning "Abgefüllt am 07.06.2012" still triggers a hit
+        def mock_real_hit(url: str) -> tuple[int, str]:
+            if "homeofmalts.com" in url and "07.06.2012" in url:
+                return (
+                    200,
+                    shopware_echo_html_template.format(q="07.06.2012").replace(
+                        "Glenfarclas 2012 Vintage",
+                        "Signatory Laphroaig 1996 — Abgefüllt am 07.06.2012",
+                    ),
+                )
+            return 200, "<html><body>Keine Ergebnisse</body></html>"
+
+        real_hits = check_whizita_and_home_of_malts(fetch=mock_real_hit)
+        self.assertEqual(len(real_hits), 1)
+        self.assertEqual(real_hits[0].target_date, "2012-06-07")
+        self.assertEqual(real_hits[0].event_type, "Bottled")
+        self.assertIn("Home of Malts", real_hits[0].title)
+
 
 class TestGeminiVerificationAndState(unittest.TestCase):
     def test_gemini_parser_filters_scams_and_sold_out(self) -> None:

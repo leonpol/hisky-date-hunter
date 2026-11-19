@@ -49,7 +49,7 @@ jobs:
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
           TARGET_DATES: ${{ inputs.target_dates || vars.TARGET_DATES || '' }}
           MANUAL_DATES_OVERRIDE: ${{ inputs.target_dates || '' }}
-          ENABLE_GITHUB_ISSUE: ${{ vars.ENABLE_GITHUB_ISSUE || 'true' }}
+          ENABLE_GITHUB_ISSUE: ${{ vars.ENABLE_GITHUB_ISSUE || 'false' }}
           FORCE_NOTIFY: ${{ inputs.force_notify || false }}
           SEND_TEST_PING: ${{ inputs.send_test_ping || false }}
           # Optional direct email settings:

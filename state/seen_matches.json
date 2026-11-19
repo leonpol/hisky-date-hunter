@@ -1,37 +1,4 @@
 {
-  "last_run_utc": "2026-11-19T14:13:44Z",
-  "seen": {
-    "https://homeofmalts.com/search?search=07.06.2012": {
-      "title": "Suchergebnis | Home of Malts",
-      "target_date": "2012-06-07",
-      "price": "78,56 €",
-      "source_layer": "Direct Check",
-      "first_seen_utc": "2026-11-19T14:13:44Z",
-      "last_seen_utc": "2026-11-19T14:13:44Z"
-    },
-    "https://homeofmalts.com/search?search=08.11.2014": {
-      "title": "Suchergebnis | Home of Malts",
-      "target_date": "2014-11-08",
-      "price": "474,75 €",
-      "source_layer": "Direct Check",
-      "first_seen_utc": "2026-11-19T14:13:44Z",
-      "last_seen_utc": "2026-11-19T14:13:44Z"
-    },
-    "https://wein-riegger.de/Craigellachie/Craigellachie-1993-2012-Gordon-amp-MacPhail-Connoisseurs-Choice.html": {
-      "title": "Craigellachie 1993–2012 Gordon & MacPhail Connoisseurs Choice (46%)",
-      "target_date": "2012-06-07",
-      "price": "149,00 €",
-      "source_layer": "Direct Check",
-      "first_seen_utc": "2026-11-19T14:13:44Z",
-      "last_seen_utc": "2026-11-19T14:13:44Z"
-    },
-    "https://whiskyclub.it/prodotto/ardnamurchan-ad-1114-ck-342-70cl-56": {
-      "title": "Ardnamurchan 2014 10yo AD/11:14 CK.342 (Whisky Club Italia Single Cask, 56%)",
-      "target_date": "2014-11-08",
-      "price": "EUR 109.00",
-      "source_layer": "Direct Check",
-      "first_seen_utc": "2026-11-19T14:13:44Z",
-      "last_seen_utc": "2026-11-19T14:13:44Z"
-    }
-  }
+  "last_run_utc": "",
+  "seen": {}
 }
