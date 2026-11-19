@@ -25,12 +25,12 @@ from .matcher import (
 
 logger = logging.getLogger(__name__)
 
-GEMINI_DEFAULT_MODEL = "gemini-3.8-flash"
+GEMINI_DEFAULT_MODEL = "gemini-3.5-flash-lite"
 GEMINI_FALLBACK_MODELS: tuple[str, ...] = (
-    "gemini-3.8-flash",
-    "gemini-flash-latest",
-    "gemini-3.6-flash",
     "gemini-3.5-flash-lite",
+    "gemini-3.6-flash",
+    "gemini-3.8-flash",
+    "gemini-3.1-flash-lite",
 )
 
 
@@ -190,10 +190,11 @@ def call_gemini_search_api(
                 return json.loads(resp.read().decode("utf-8"))
         except HTTPError as exc:
             last_err = exc
-            if exc.code == 404 and idx + 1 < len(candidates_to_try):
+            if exc.code in (404, 429) and idx + 1 < len(candidates_to_try):
                 logger.warning(
-                    "Model '%s' returned HTTP 404; retrying with '%s'...",
+                    "Model '%s' returned HTTP %s; retrying with '%s'...",
                     candidate_model,
+                    exc.code,
                     candidates_to_try[idx + 1],
                 )
                 continue
