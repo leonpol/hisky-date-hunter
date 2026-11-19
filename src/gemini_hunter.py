@@ -25,7 +25,13 @@ from .matcher import (
 
 logger = logging.getLogger(__name__)
 
-GEMINI_DEFAULT_MODEL = "gemini-2.5-flash"
+GEMINI_DEFAULT_MODEL = "gemini-3.8-flash"
+GEMINI_FALLBACK_MODELS: tuple[str, ...] = (
+    "gemini-3.8-flash",
+    "gemini-flash-latest",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+)
 
 
 def build_system_prompt(target_dates: Sequence[str] = DEFAULT_TARGET_DATES) -> str:
@@ -158,20 +164,42 @@ def call_gemini_search_api(
         "generationConfig": {"temperature": 0.1},
     }
 
-    endpoint = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    )
-    req = Request(
-        endpoint,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "x-goog-api-key": api_key,
-        },
-        method="POST",
-    )
-    with urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    candidates_to_try: list[str] = [model]
+    for fb in GEMINI_FALLBACK_MODELS:
+        if fb not in candidates_to_try:
+            candidates_to_try.append(fb)
+
+    last_err: Optional[Exception] = None
+    for idx, candidate_model in enumerate(candidates_to_try):
+        endpoint = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/{candidate_model}:generateContent"
+        )
+        req = Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": api_key,
+            },
+            method="POST",
+        )
+        try:
+            with urlopen(req, timeout=timeout) as resp:
+                if idx > 0:
+                    logger.info("Gemini fallback model '%s' succeeded.", candidate_model)
+                return json.loads(resp.read().decode("utf-8"))
+        except HTTPError as exc:
+            last_err = exc
+            if exc.code == 404 and idx + 1 < len(candidates_to_try):
+                logger.warning(
+                    "Model '%s' returned HTTP 404; retrying with '%s'...",
+                    candidate_model,
+                    candidates_to_try[idx + 1],
+                )
+                continue
+            raise
+    assert last_err is not None
+    raise last_err
 
 
 def parse_and_verify_gemini_response(
