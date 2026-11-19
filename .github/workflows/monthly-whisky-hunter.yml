@@ -1,0 +1,72 @@
+name: Monthly Whisky Hunter
+
+on:
+  schedule:
+    # Runs at 09:00 UTC on the 21st of every month
+    # (Timed right after Whisky Auctioneer's monthly auction goes live around the 20th)
+    - cron: "0 9 21 * *"
+  workflow_dispatch:
+    inputs:
+      target_dates:
+        description: "Optional one-off date override (YYYY-MM-DD,YYYY-MM-DD). Leave blank to use TARGET_DATES variable or default."
+        required: false
+        default: ""
+        type: string
+      force_notify:
+        description: "Send alert for all active matches even if already seen"
+        required: false
+        default: false
+        type: boolean
+      send_test_ping:
+        description: "Send a Telegram connection test ping even if 0 new matches are found"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Hybrid Whisky Hunter Agent
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
+          TARGET_DATES: ${{ inputs.target_dates || vars.TARGET_DATES || '' }}
+          MANUAL_DATES_OVERRIDE: ${{ inputs.target_dates || '' }}
+          ENABLE_GITHUB_ISSUE: ${{ vars.ENABLE_GITHUB_ISSUE || 'true' }}
+          FORCE_NOTIFY: ${{ inputs.force_notify || false }}
+          SEND_TEST_PING: ${{ inputs.send_test_ping || false }}
+          # Optional direct email settings:
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: python -m src.main --state-file state/seen_matches.json
+
+      - name: Commit updated seen-matches state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/seen_matches.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(state): update seen whisky matches [skip ci]"
+            git push
+          fi
